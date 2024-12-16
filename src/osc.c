@@ -48,10 +48,13 @@ OscMessage* osc_message_delete (const OscMessage* msg) {
 
     // Free arguments (especially strings)
     if (msg->args) {
-        for (size_t i=0; i<strlen(msg->tags); ++i) {
-            if (msg->tags[i] == 's' || msg->tags[i] == 'S') {
-                if (msg->args[i].str) {
-                    osc_free((void*)msg->args[i].str);
+
+        if (msg->tags) {
+            for (size_t i=0; i<strlen(msg->tags); ++i) {
+                if (msg->tags[i] == 's' || msg->tags[i] == 'S') {
+                    if (msg->args[i].str) {
+                        osc_free((void*)msg->args[i].str);
+                    }
                 }
             }
         }

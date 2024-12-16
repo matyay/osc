@@ -6,6 +6,20 @@
 
 // ============================================================================
 
+static int32_t allocCount = 0;
+
+void* osc_malloc (size_t size) {
+    allocCount++;
+    return malloc(size);
+}
+
+void osc_free (void* ptr) {
+    allocCount--;
+    free(ptr);
+}
+
+// ============================================================================
+
 int load_file (const char* name, uint8_t** pdata, size_t* psize) {
 
     fprintf(stderr, "Loading '%s' ...\n", name);
@@ -42,6 +56,8 @@ void hexdump (const uint8_t* data, size_t size) {
 
 TEST(testParse, Reference1)
 {
+    allocCount = 0;
+
     uint8_t* data = NULL;
     size_t   size = 0;
     EXPECT_TRUE(load_file("tests/assets/ref1.bin", &data, &size) == 0);
@@ -57,10 +73,14 @@ TEST(testParse, Reference1)
     EXPECT_FLOAT_EQ(msg->args[0].f32, 440.0f);
 
     osc_bundle_delete(bundle);
+
+    EXPECT_EQ(allocCount, 0);
 }
 
 TEST(testParse, Reference2)
 {
+    allocCount = 0;
+
     uint8_t* data = NULL;
     size_t   size = 0;
     EXPECT_TRUE(load_file("tests/assets/ref2.bin", &data, &size) == 0);
@@ -80,12 +100,16 @@ TEST(testParse, Reference2)
     EXPECT_FLOAT_EQ(msg->args[4].f32, 5.678f);
 
     osc_bundle_delete(bundle);
+
+    EXPECT_EQ(allocCount, 0);
 }
 
 // ============================================================================
 
 TEST(testRoundtrip, Int32)
 {
+    allocCount = 0;
+
     OscMessage* msg = osc_message_create("i");
     EXPECT_NE(msg, nullptr);
 
@@ -115,12 +139,17 @@ TEST(testRoundtrip, Int32)
     EXPECT_STREQ(dec->tags, msg->tags);
     EXPECT_EQ(dec->args[0].i32, msg->args[0].i32);
 
+    osc_free(data);
     osc_message_delete(msg);
     osc_bundle_delete(bundle);
+
+    EXPECT_EQ(allocCount, 0);
 }
 
 TEST(testRoundtrip, Int64)
 {
+    allocCount = 0;
+
     OscMessage* msg = osc_message_create("h");
     EXPECT_NE(msg, nullptr);
 
@@ -150,12 +179,17 @@ TEST(testRoundtrip, Int64)
     EXPECT_STREQ(dec->tags, msg->tags);
     EXPECT_EQ(dec->args[0].i64, msg->args[0].i64);
 
+    osc_free(data);
     osc_message_delete(msg);
     osc_bundle_delete(bundle);
+
+    EXPECT_EQ(allocCount, 0);
 }
 
 TEST(testRoundtrip, Float32)
 {
+    allocCount = 0;
+
     OscMessage* msg = osc_message_create("f");
     EXPECT_NE(msg, nullptr);
 
@@ -185,12 +219,17 @@ TEST(testRoundtrip, Float32)
     EXPECT_STREQ(dec->tags, msg->tags);
     EXPECT_FLOAT_EQ(dec->args[0].f32, msg->args[0].f32);
 
+    osc_free(data);
     osc_message_delete(msg);
     osc_bundle_delete(bundle);
+
+    EXPECT_EQ(allocCount, 0);
 }
 
 TEST(testRoundtrip, Float64)
 {
+    allocCount = 0;
+
     OscMessage* msg = osc_message_create("d");
     EXPECT_NE(msg, nullptr);
 
@@ -220,12 +259,17 @@ TEST(testRoundtrip, Float64)
     EXPECT_STREQ(dec->tags, msg->tags);
     EXPECT_FLOAT_EQ(dec->args[0].f64, msg->args[0].f64);
 
+    osc_free(data);
     osc_message_delete(msg);
     osc_bundle_delete(bundle);
+
+    EXPECT_EQ(allocCount, 0);
 }
 
 TEST(testRoundtrip, String)
 {
+    allocCount = 0;
+
     OscMessage* msg = osc_message_create("s");
     EXPECT_NE(msg, nullptr);
 
@@ -255,12 +299,17 @@ TEST(testRoundtrip, String)
     EXPECT_STREQ(dec->tags, msg->tags);
     EXPECT_STREQ(dec->args[0].str, msg->args[0].str);
 
+    osc_free(data);
     osc_message_delete(msg);
     osc_bundle_delete(bundle);
+
+    EXPECT_EQ(allocCount, 0);
 }
 
 TEST(testRoundtrip, Bool)
 {
+    allocCount = 0;
+
     OscMessage* msg = osc_message_create("TF");
     EXPECT_NE(msg, nullptr);
 
@@ -289,14 +338,19 @@ TEST(testRoundtrip, Bool)
     EXPECT_EQ(dec->args[0].i32, 1);
     EXPECT_EQ(dec->args[1].i32, 0);
 
+    osc_free(data);
     osc_message_delete(msg);
     osc_bundle_delete(bundle);
+
+    EXPECT_EQ(allocCount, 0);
 }
 
 // ============================================================================
 
 TEST(testRoundtrip, Bundle)
 {
+    allocCount = 0;
+
     // Message 1
     OscMessage* msg1 = osc_message_create("si");
     EXPECT_NE(msg1, nullptr);
@@ -352,8 +406,11 @@ TEST(testRoundtrip, Bundle)
     EXPECT_STREQ(dec2->args[0].str, msg1->args[0].str);
     EXPECT_EQ(dec2->args[1].i32, msg1->args[1].i32);
 
+    osc_free(data);
     osc_bundle_delete(bundle);
     osc_bundle_delete(dec);
+
+    EXPECT_EQ(allocCount, 0);
 }
 
 // ============================================================================
@@ -365,6 +422,8 @@ TEST(testRandomRoundtrip, Random)
 
     // Do tests
     for (size_t i=0; i<numTests; ++i) {
+
+        allocCount = 0;
 
         // Randomize message count
         size_t numMsgs = 1 + (rand() % 3);
@@ -488,8 +547,10 @@ TEST(testRandomRoundtrip, Random)
 
         // Cleanup
         osc_free(data);
-        osc_free(bundle);
-        osc_free(dec);
+        osc_bundle_delete(bundle);
+        osc_bundle_delete(dec);
+
+        EXPECT_EQ(allocCount, 0);
     }
 }
 

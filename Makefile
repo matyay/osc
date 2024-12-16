@@ -1,4 +1,4 @@
-OSC_SRCS = $(wildcard src/*.c)
+OSC_SRCS = $(filter-out %osc_posix.c,$(wildcard src/*.c))
 
 all: tests
 
