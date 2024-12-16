@@ -13,12 +13,22 @@
 
 // OSC message argument
 typedef union _OscArgument {
+
     int32_t i32;
     float   f32;
     int64_t i64;
     double  f64;
     char*   str;
+
+    struct {
+        uint8_t port;
+        uint8_t status;
+        uint8_t data1;
+        uint8_t data2;
+    } midi;
+
     uint8_t b[8];
+
 } OscArgument;
 
 // OSC message

@@ -71,6 +71,7 @@ static OscMessage* osc_parse_message (const uint8_t* data, size_t size) {
 
             case 'c':
             case 'r':
+            case 'm':
                 arg_size = 4;
                 break;
 
@@ -111,6 +112,7 @@ static OscMessage* osc_parse_message (const uint8_t* data, size_t size) {
             case 'i':
             case 'f':
             case 'r':
+            case 'm':
                 for (size_t j=0; j<4; ++j) {
                     msg->args[i].b[3 - j] = data[ptr + j];
                 }

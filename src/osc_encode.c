@@ -35,6 +35,7 @@ static size_t osc_message_size (const OscMessage* msg) {
 
             case 'c':
             case 'r':
+            case 'm':
                 arg_size = 4;
                 break;
 
@@ -130,6 +131,7 @@ int osc_encode_message (const OscMessage* msg, uint8_t** pdata, size_t* psize)
             case 'i':
             case 'f':
             case 'r':
+            case 'm':
                 for (size_t j=0; j<4; ++j) {
                     data[ptr++] = msg->args[i].b[3 - j];
                 }
