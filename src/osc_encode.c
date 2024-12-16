@@ -154,6 +154,13 @@ int osc_encode_message (const OscMessage* msg, uint8_t** pdata, size_t* psize)
                 data[ptr++] = msg->args[i].i32 & 0x7F;
                 break;
 
+            // Data-less
+            case 'T':
+            case 'F':
+            case 'N':
+            case 'I':
+                break;
+
             // String
             case 's':
             case 'S':

@@ -119,6 +119,41 @@ TEST(testRoundtrip, Int32)
     osc_bundle_delete(bundle);
 }
 
+TEST(testRoundtrip, Int64)
+{
+    OscMessage* msg = osc_message_create("h");
+    EXPECT_NE(msg, nullptr);
+
+    msg->addr = osc_strdup("/root");
+    EXPECT_NE(msg->addr, nullptr);
+
+    msg->args[0].i64 = 0xABCDEF0012345678LL;
+
+    // Encode
+    uint8_t* data = NULL;
+    size_t   size = 0;
+    EXPECT_TRUE(osc_encode_message(msg, &data, &size) == 0);
+    EXPECT_NE(data, nullptr);
+    EXPECT_NE(size, 0);
+    EXPECT_EQ(size & 3, 0);
+
+    hexdump(data, size);
+
+    // Decode
+    OscBundle* bundle = osc_parse(data, size);
+    EXPECT_NE(bundle, nullptr);
+
+    EXPECT_NE(bundle->messages, nullptr);
+    OscMessage* dec = bundle->messages;
+
+    EXPECT_STREQ(dec->addr, msg->addr);
+    EXPECT_STREQ(dec->tags, msg->tags);
+    EXPECT_EQ(dec->args[0].i64, msg->args[0].i64);
+
+    osc_message_delete(msg);
+    osc_bundle_delete(bundle);
+}
+
 TEST(testRoundtrip, Float32)
 {
     OscMessage* msg = osc_message_create("f");
@@ -154,6 +189,41 @@ TEST(testRoundtrip, Float32)
     osc_bundle_delete(bundle);
 }
 
+TEST(testRoundtrip, Float64)
+{
+    OscMessage* msg = osc_message_create("d");
+    EXPECT_NE(msg, nullptr);
+
+    msg->addr = osc_strdup("/root");
+    EXPECT_NE(msg->addr, nullptr);
+
+    msg->args[0].f64 = 0.123456789f;
+
+    // Encode
+    uint8_t* data = NULL;
+    size_t   size = 0;
+    EXPECT_TRUE(osc_encode_message(msg, &data, &size) == 0);
+    EXPECT_NE(data, nullptr);
+    EXPECT_NE(size, 0);
+    EXPECT_EQ(size & 3, 0);
+
+    hexdump(data, size);
+
+    // Decode
+    OscBundle* bundle = osc_parse(data, size);
+    EXPECT_NE(bundle, nullptr);
+
+    EXPECT_NE(bundle->messages, nullptr);
+    OscMessage* dec = bundle->messages;
+
+    EXPECT_STREQ(dec->addr, msg->addr);
+    EXPECT_STREQ(dec->tags, msg->tags);
+    EXPECT_FLOAT_EQ(dec->args[0].f64, msg->args[0].f64);
+
+    osc_message_delete(msg);
+    osc_bundle_delete(bundle);
+}
+
 TEST(testRoundtrip, String)
 {
     OscMessage* msg = osc_message_create("s");
@@ -184,6 +254,40 @@ TEST(testRoundtrip, String)
     EXPECT_STREQ(dec->addr, msg->addr);
     EXPECT_STREQ(dec->tags, msg->tags);
     EXPECT_STREQ(dec->args[0].str, msg->args[0].str);
+
+    osc_message_delete(msg);
+    osc_bundle_delete(bundle);
+}
+
+TEST(testRoundtrip, Bool)
+{
+    OscMessage* msg = osc_message_create("TF");
+    EXPECT_NE(msg, nullptr);
+
+    msg->addr = osc_strdup("/root");
+    EXPECT_NE(msg->addr, nullptr);
+
+    // Encode
+    uint8_t* data = NULL;
+    size_t   size = 0;
+    EXPECT_TRUE(osc_encode_message(msg, &data, &size) == 0);
+    EXPECT_NE(data, nullptr);
+    EXPECT_NE(size, 0);
+    EXPECT_EQ(size & 3, 0);
+
+    hexdump(data, size);
+
+    // Decode
+    OscBundle* bundle = osc_parse(data, size);
+    EXPECT_NE(bundle, nullptr);
+
+    EXPECT_NE(bundle->messages, nullptr);
+    OscMessage* dec = bundle->messages;
+
+    EXPECT_STREQ(dec->addr, msg->addr);
+    EXPECT_STREQ(dec->tags, msg->tags);
+    EXPECT_EQ(dec->args[0].i32, 1);
+    EXPECT_EQ(dec->args[1].i32, 0);
 
     osc_message_delete(msg);
     osc_bundle_delete(bundle);
