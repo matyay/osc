@@ -58,6 +58,9 @@ OscMessage* osc_message_delete  (const OscMessage* msg);
 OscBundle* osc_bundle_create    (int64_t timestamp);
 OscBundle* osc_bundle_delete    (const OscBundle* bundle);
 
+void osc_bundle_add_message (OscBundle* bundle, OscMessage* msg);
+void osc_bundle_add_bundle  (OscBundle* bundle, OscMessage* other);
+
 // ============================================================================
 
 OscBundle* osc_parse (const uint8_t* data, size_t size);

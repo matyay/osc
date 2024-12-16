@@ -4,8 +4,6 @@
 
 // ============================================================================
 
-OscBundle* osc_parse (const uint8_t* data, size_t size);
-
 static OscMessage* osc_parse_message (const uint8_t* data, size_t size) {
 
     // Sanity check
@@ -91,6 +89,7 @@ static OscMessage* osc_parse_message (const uint8_t* data, size_t size) {
                 for (size_t p=ptr; data[p] != 0 && p < size; ++p) {
                     arg_size++;
                 }
+                arg_size += 1;
                 break;
 
             // Unknown, error
@@ -163,15 +162,79 @@ static OscMessage* osc_parse_message (const uint8_t* data, size_t size) {
 
 static OscBundle* osc_parse_bundle (const uint8_t* data, size_t size) {
 
-    OscBundle* bundle = NULL;
+    const uint8_t magic[] = {'#', 'b', 'u', 'n', 'd', 'l', 'e', 0};
+
+    // Too small to fit the header
+    if (size < 16) {
+        return NULL;
+    }
+
+    // Skip magic
+    size_t ptr = 8;
+
+    // Timestamp
+    int64_t timestamp = 0;
+    for (size_t i=0; i<8; ++i) {
+        timestamp <<= 8;
+        timestamp  |= data[ptr++];
+    }
+
+    // Allocate the bundle
+    OscBundle* bundle = osc_bundle_create(timestamp);
+
+    // Parse bundle items
+    while (ptr < size) {
+
+        // Size
+        size_t len = 0;
+        for (size_t i=0; i<4; ++i) {
+            len <<= 8;
+            len  |= data[ptr++];
+        }
+
+        // Check if the message is a bundle
+        const int isBundle = (len > sizeof(magic)) &&
+                             !memcmp(&data[ptr], magic, sizeof(magic));
+
+        // Got a bundle
+        if (isBundle) {
+
+            OscBundle* bun = osc_parse_bundle(&data[ptr], len);
+            if (!bun) {
+                osc_bundle_delete(bundle);
+                return NULL;
+            }
+
+            bun->next = bundle->bundles;
+            bundle->bundles = bun;
+        }
+
+        // Got a message
+        else {
+
+            OscMessage* msg = osc_parse_message(&data[ptr], len);
+            if (!msg) {
+                osc_bundle_delete(bundle);
+                return NULL;
+            }
+
+            msg->next = bundle->messages;
+            bundle->messages = msg;
+        }
+
+        // Next
+        ptr += len;
+    }
 
     return bundle;
 }
 
+// ============================================================================
+
 OscBundle* osc_parse (const uint8_t* data, size_t size) {
 
     // Check if the message is a bundle
-    const uint8_t magic[] = {'#', 'b', 'u', 'n', 'd', 'l', 'e'};
+    const uint8_t magic[] = {'#', 'b', 'u', 'n', 'd', 'l', 'e', 0};
     const int isBundle = (size > sizeof(magic)) &&
                          !memcmp(data, magic, sizeof(magic));
 

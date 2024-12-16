@@ -100,6 +100,7 @@ TEST(testRoundtrip, Int32)
     EXPECT_TRUE(osc_encode_message(msg, &data, &size) == 0);
     EXPECT_NE(data, nullptr);
     EXPECT_NE(size, 0);
+    EXPECT_EQ(size & 3, 0);
 
     hexdump(data, size);
 
@@ -134,6 +135,7 @@ TEST(testRoundtrip, Float32)
     EXPECT_TRUE(osc_encode_message(msg, &data, &size) == 0);
     EXPECT_NE(data, nullptr);
     EXPECT_NE(size, 0);
+    EXPECT_EQ(size & 3, 0);
 
     hexdump(data, size);
 
@@ -168,6 +170,7 @@ TEST(testRoundtrip, String)
     EXPECT_TRUE(osc_encode_message(msg, &data, &size) == 0);
     EXPECT_NE(data, nullptr);
     EXPECT_NE(size, 0);
+    EXPECT_EQ(size & 3, 0);
 
     hexdump(data, size);
 
@@ -184,4 +187,67 @@ TEST(testRoundtrip, String)
 
     osc_message_delete(msg);
     osc_bundle_delete(bundle);
+}
+
+// ============================================================================
+
+TEST(testRoundtrip, Bundle)
+{
+    // Message 1
+    OscMessage* msg1 = osc_message_create("si");
+    EXPECT_NE(msg1, nullptr);
+
+    msg1->addr = osc_strdup("/root/1");
+    EXPECT_NE(msg1->addr, nullptr);
+
+    msg1->args[0].str = osc_strdup("test");
+    msg1->args[1].i32 = 1234;
+
+    // Message 2
+    OscMessage* msg2 = osc_message_create("ds");
+    EXPECT_NE(msg2, nullptr);
+
+    msg2->addr = osc_strdup("/root/2");
+    EXPECT_NE(msg2->addr, nullptr);
+
+    msg2->args[0].f64 = 1.2345;
+    msg2->args[1].str = osc_strdup("aloha");
+
+    // Make bundle
+    OscBundle* bundle = osc_bundle_create(5678);
+    bundle->messages = msg1;
+    msg1->next = msg2;
+
+    // Encode
+    uint8_t* data = NULL;
+    size_t   size = 0;
+    EXPECT_TRUE(osc_encode_bundle(bundle, &data, &size) == 0);
+    EXPECT_NE(data, nullptr);
+    EXPECT_NE(size, 0);
+    EXPECT_EQ(size & 3, 0);
+
+    hexdump(data, size);
+
+    // Decode
+    OscBundle* dec = osc_parse(data, size);
+    EXPECT_NE(dec, nullptr);
+
+    EXPECT_NE(dec->messages, nullptr);
+    OscMessage* dec1 = dec->messages;
+
+    EXPECT_NE(dec1->next, nullptr);
+    OscMessage* dec2 = dec1->next;
+
+    EXPECT_STREQ(dec1->addr, msg2->addr);
+    EXPECT_STREQ(dec1->tags, msg2->tags);
+    EXPECT_FLOAT_EQ(dec1->args[0].f64, msg2->args[0].f64);
+    EXPECT_STREQ(dec1->args[1].str, msg2->args[1].str);
+    
+    EXPECT_STREQ(dec2->addr, msg1->addr);
+    EXPECT_STREQ(dec2->tags, msg1->tags);
+    EXPECT_STREQ(dec2->args[0].str, msg1->args[0].str);
+    EXPECT_EQ(dec2->args[1].i32, msg1->args[1].i32);
+
+    osc_bundle_delete(bundle);
+    osc_bundle_delete(dec);
 }

@@ -113,3 +113,13 @@ OscBundle* osc_bundle_delete (const OscBundle* bundle) {
 
     return NULL;
 }
+
+void osc_bundle_add_message (OscBundle* bundle, OscMessage* msg) {
+    msg->next = bundle->messages;
+    bundle->messages = msg;
+}
+
+void osc_bundle_add_bundle (OscBundle* bundle, OscBundle* other) {
+    other->next = bundle->bundles;
+    bundle->bundles = other;
+}
