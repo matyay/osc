@@ -355,3 +355,141 @@ TEST(testRoundtrip, Bundle)
     osc_bundle_delete(bundle);
     osc_bundle_delete(dec);
 }
+
+// ============================================================================
+
+TEST(testRandomRoundtrip, Random)
+{
+    const char      oscTypes[] = {'i', 'h', 'f', 'd', 's', 'T', 'F', 'N'};
+    const size_t    numTests   = 50;
+
+    // Do tests
+    for (size_t i=0; i<numTests; ++i) {
+
+        // Randomize message count
+        size_t numMsgs = 1 + (rand() % 3);
+        fprintf(stderr, "%2zu. (%zu)\n", i + 1, numMsgs);
+
+        // Create the bundle
+        OscBundle*  bundle = osc_bundle_create(5678);
+        EXPECT_NE(bundle, nullptr);
+
+        OscMessage* msgs[8];
+        for (size_t j=0; j<numMsgs; ++j) {
+
+            // Randomize argument count
+            size_t numArgs = 1 + (rand() % 7);
+
+            // Randomize tags
+            char tags[8] = {0};
+            for (size_t k=0; k<numArgs; ++k) {
+                size_t n = rand() % sizeof(oscTypes);
+                tags[k] = oscTypes[n];
+            }
+
+            fprintf(stderr, " %2zu. '%s'\n", j + 1, tags);
+
+            // Create the message
+            OscMessage* msg = osc_message_create(tags);
+            EXPECT_NE(msg, nullptr);
+
+            msg->addr = osc_strdup("/root");
+            EXPECT_NE(msg->addr, nullptr);
+
+            // Randomize values
+            size_t len = 0;
+            for (size_t k=0; k<numArgs; ++k) {
+                switch (msg->tags[k]) {
+
+                    case 'i':
+                    case 'f':
+                        for (size_t n=0; n<4; ++n) {
+                            msg->args[k].b[n] = rand() % 255;
+                        }
+                        break;
+
+                    case 'h':
+                    case 'd':
+                        for (size_t n=0; n<8; ++n) {
+                            msg->args[k].b[n] = rand() % 255;
+                        }
+                        break;
+
+                    case 's':
+                        len = 4 + random() % 16;
+                        msg->args[k].str = (char*)osc_malloc(len + 1);
+                        for (size_t n=0; n<len; ++n) {
+                            msg->args[k].str[n] = 'A' + rand() * ('z' - 'A');
+                        }
+                        msg->args[k].str[len] = 0;
+                        break;
+                    }
+                }
+
+            // Add the message
+            osc_bundle_add_message(bundle, msg);
+            msgs[j] = msg;
+        }
+
+        // Encode
+        uint8_t* data = NULL;
+        size_t   size = 0;
+        EXPECT_TRUE(osc_encode_bundle(bundle, &data, &size) == 0);
+        EXPECT_NE(data, nullptr);
+        EXPECT_NE(size, 0);
+        EXPECT_EQ(size & 3, 0);
+
+        fprintf(stderr, " ");
+        hexdump(data, size);
+
+        // Decode
+        OscBundle* dec = osc_parse(data, size);
+        EXPECT_NE(dec, nullptr);
+
+        // Compare messages
+        size_t idx = 0;
+        for (OscMessage* mss = dec->messages; mss; mss = mss->next) {
+            OscMessage* ref = msgs[idx++];
+
+            // Compare
+            EXPECT_STREQ(mss->addr, ref->addr);
+            EXPECT_STREQ(mss->tags, ref->tags);
+
+            for (size_t j=0; j<strlen(mss->tags); ++j) {
+                switch (mss->tags[j]) {
+
+                    case 'i':
+                    case 'f':
+                        EXPECT_EQ(memcmp(mss->args[j].b, ref->args[j].b, 4), 0);
+                        break;
+
+                    case 'h':
+                    case 'd':
+                        EXPECT_EQ(memcmp(mss->args[j].b, ref->args[j].b, 8), 0);
+                        break;
+
+                    case 'T':
+                        EXPECT_EQ(mss->args[j].i32, 1);
+                        break;
+
+                    case 'F':
+                    case 'N':
+                        EXPECT_EQ(mss->args[j].i32, 0);
+                        break;
+
+                    case 's':
+                        EXPECT_STREQ(mss->args[j].str, ref->args[j].str);
+                        break;
+                }
+            }
+        }
+
+        EXPECT_EQ(idx, numMsgs);
+
+        // Cleanup
+        osc_free(data);
+        osc_free(bundle);
+        osc_free(dec);
+    }
+}
+
