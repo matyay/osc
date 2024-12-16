@@ -112,24 +112,18 @@ static OscMessage* osc_parse_message (const uint8_t* data, size_t size) {
             case 'i':
             case 'f':
             case 'r':
-                msg->args[i].i32 =  (data[ptr + 0] << 24) |
-                                    (data[ptr + 1] << 16) |
-                                    (data[ptr + 2] <<  8) |
-                                    (data[ptr + 3]      );
+                for (size_t j=0; j<4; ++j) {
+                    msg->args[i].b[3 - j] = data[ptr + j];
+                }
                 break;
 
             // 64-bit
             case 'h':
             case 'd':
             case 't':
-                msg->args[i].i64 =  (data[ptr + 0] << 56) |
-                                    (data[ptr + 1] << 48) |
-                                    (data[ptr + 2] << 40) |
-                                    (data[ptr + 3] << 32) |
-                                    (data[ptr + 4] << 24) |
-                                    (data[ptr + 5] << 16) |
-                                    (data[ptr + 6] <<  8) |
-                                    (data[ptr + 7]      );
+                for (size_t j=0; j<8; ++j) {
+                    msg->args[i].b[7 - j] = data[ptr + j];
+                }
                 break;
 
             // char as 32-bit
