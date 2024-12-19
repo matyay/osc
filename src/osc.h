@@ -69,7 +69,7 @@ OscBundle* osc_bundle_create    (int64_t timestamp);
 OscBundle* osc_bundle_delete    (const OscBundle* bundle);
 
 void osc_bundle_add_message (OscBundle* bundle, OscMessage* msg);
-void osc_bundle_add_bundle  (OscBundle* bundle, OscMessage* other);
+void osc_bundle_add_bundle  (OscBundle* bundle, OscBundle* other);
 
 // ============================================================================
 
